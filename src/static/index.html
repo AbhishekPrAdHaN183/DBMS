@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus OMS - Warehouse Inventory & Order Management System</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <span class="logo-icon"><i class="fa-solid fa-cubes-stacked"></i></span>
+                    <span class="logo-text">Nexus<span>OMS</span></span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="nav-item active" data-tab="dashboard">
+                        <i class="fa-solid fa-chart-pie"></i> <span>Dashboard</span>
+                    </li>
+                    <li class="nav-item" data-tab="products">
+                        <i class="fa-solid fa-box-open"></i> <span>Products</span>
+                    </li>
+                    <li class="nav-item" data-tab="orders">
+                        <i class="fa-solid fa-cart-shopping"></i> <span>Orders</span>
+                    </li>
+                    <li class="nav-item" data-tab="customers">
+                        <i class="fa-solid fa-users"></i> <span>Customers</span>
+                    </li>
+                    <li class="nav-item" data-tab="suppliers">
+                        <i class="fa-solid fa-truck-field"></i> <span>Suppliers</span>
+                    </li>
+                    <li class="nav-item" data-tab="transactions">
+                        <i class="fa-solid fa-clock-rotate-left"></i> <span>Inventory Logs</span>
+                    </li>
+                </ul>
+            </nav>
+            <div class="sidebar-footer">
+                <p>System Live</p>
+                <span class="pulse-indicator"></span>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="header-left">
+                    <h1 id="page-title">Operations Dashboard</h1>
+                    <p class="subtitle" id="page-subtitle">Real-time warehouse metrics and controls</p>
+                </div>
+                <div class="header-right">
+                    <button class="btn btn-primary" onclick="openModal('order-modal')">
+                        <i class="fa-solid fa-plus"></i> Place Order
+                    </button>
+                </div>
+            </header>
+
+            <!-- Dashboard Tab Panel -->
+            <section class="tab-panel active" id="dashboard-tab">
+                <!-- KPI Summary Grid -->
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-icon icon-revenue"><i class="fa-solid fa-sack-dollar"></i></div>
+                        <div class="kpi-details">
+                            <span class="kpi-title">Total Revenue</span>
+                            <span class="kpi-value" id="kpi-revenue">$0.00</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon icon-orders"><i class="fa-solid fa-circle-check"></i></div>
+                        <div class="kpi-details">
+                            <span class="kpi-title">Active Orders</span>
+                            <span class="kpi-value" id="kpi-orders">0</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon icon-valuation"><i class="fa-solid fa-warehouse"></i></div>
+                        <div class="kpi-details">
+                            <span class="kpi-title">Stock Valuation</span>
+                            <span class="kpi-value" id="kpi-valuation">$0.00</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card alert">
+                        <div class="kpi-icon icon-lowstock"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                        <div class="kpi-details">
+                            <span class="kpi-title">Low Stock Items</span>
+                            <span class="kpi-value" id="kpi-lowstock">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dashboard Charts and Tables -->
+                <div class="content-grid">
+                    <!-- Analytics Charts -->
+                    <div class="panel chart-panel">
+                        <h3>Stock Levels & Pricing</h3>
+                        <div class="chart-container">
+                            <canvas id="stockChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Recent Transactions List -->
+                    <div class="panel transactions-panel">
+                        <div class="panel-header">
+                            <h3>Recent Operations Logs</h3>
+                            <button class="btn btn-text" onclick="switchTab('transactions')">View All</button>
+                        </div>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Type</th>
+                                        <th>Quantity</th>
+                                        <th>Reason</th>
+                                        <th>Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recent-logs-table">
+                                    <tr><td colspan="5" class="loading-cell">Loading transactions...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Products Tab Panel -->
+            <section class="tab-panel" id="products-tab">
+                <div class="panel">
+                    <div class="panel-header search-header">
+                        <div class="search-bar">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="product-search" placeholder="Search by name or SKU..." oninput="loadProducts()">
+                        </div>
+                        <div class="filters">
+                            <label class="checkbox-container">
+                                <input type="checkbox" id="product-filter-low" onchange="loadProducts()">
+                                <span class="checkmark"></span>
+                                Show Low Stock Only
+                            </label>
+                            <button class="btn btn-secondary" onclick="openModal('product-modal')">
+                                <i class="fa-solid fa-plus"></i> Add Product
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>SKU</th>
+                                    <th>Product Name</th>
+                                    <th>Supplier</th>
+                                    <th>Price</th>
+                                    <th>Stock Level</th>
+                                    <th>Status</th>
+                                    <th class="actions-header">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="products-table">
+                                <tr><td colspan="7" class="loading-cell">Loading products...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Orders Tab Panel -->
+            <section class="tab-panel" id="orders-tab">
+                <div class="panel">
+                    <div class="panel-header search-header">
+                        <div class="filters">
+                            <button class="btn btn-tab active" data-status-filter="ALL" onclick="filterOrders(this)">All</button>
+                            <button class="btn btn-tab" data-status-filter="PENDING" onclick="filterOrders(this)">Pending</button>
+                            <button class="btn btn-tab" data-status-filter="SHIPPED" onclick="filterOrders(this)">Shipped</button>
+                            <button class="btn btn-tab" data-status-filter="DELIVERED" onclick="filterOrders(this)">Delivered</button>
+                            <button class="btn btn-tab" data-status-filter="CANCELLED" onclick="filterOrders(this)">Cancelled</button>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Customer</th>
+                                    <th>Items Summary</th>
+                                    <th>Date</th>
+                                    <th>Total Price</th>
+                                    <th>Status</th>
+                                    <th class="actions-header">Status Controls</th>
+                                </tr>
+                            </thead>
+                            <tbody id="orders-table">
+                                <tr><td colspan="7" class="loading-cell">Loading orders...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Customers Tab Panel -->
+            <section class="tab-panel" id="customers-tab">
+                <div class="panel">
+                    <div class="panel-header flex-header">
+                        <h3>Customer Ledger</h3>
+                        <button class="btn btn-primary" onclick="openModal('customer-modal')">
+                            <i class="fa-solid fa-user-plus"></i> Add Customer
+                        </button>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Billing/Shipping Address</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customers-table">
+                                <tr><td colspan="5" class="loading-cell">Loading customers...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Suppliers Tab Panel -->
+            <section class="tab-panel" id="suppliers-tab">
+                <div class="panel">
+                    <div class="panel-header flex-header">
+                        <h3>Supplier Ledger</h3>
+                        <button class="btn btn-primary" onclick="openModal('supplier-modal')">
+                            <i class="fa-solid fa-truck-ramp-box"></i> Add Supplier
+                        </button>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Supplier Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                </tr>
+                            </thead>
+                            <tbody id="suppliers-table">
+                                <tr><td colspan="4" class="loading-cell">Loading suppliers...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Transactions Tab Panel -->
+            <section class="tab-panel" id="transactions-tab">
+                <div class="panel">
+                    <div class="panel-header">
+                        <h3>Complete Audit Log</h3>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Transaction ID</th>
+                                    <th>SKU</th>
+                                    <th>Product Name</th>
+                                    <th>Direction</th>
+                                    <th>Quantity</th>
+                                    <th>Reason Code</th>
+                                    <th>Timestamp</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transactions-table">
+                                <tr><td colspan="7" class="loading-cell">Loading inventory logs...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- ==========================================
+         Modals Configuration
+         ========================================== -->
+
+    <!-- 1. Order Creation Modal -->
+    <div id="order-modal" class="modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h2>Create Customer Order</h2>
+                <span class="close-btn" onclick="closeModal('order-modal')">&times;</span>
+            </div>
+            <form id="order-form" onsubmit="submitOrder(event)">
+                <div class="form-group">
+                    <label for="order-customer">Select Customer</label>
+                    <select id="order-customer" required>
+                        <option value="">Choose a customer...</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Order Items</label>
+                    <div id="order-items-container">
+                        <!-- Added dynamically -->
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-small" onclick="addOrderItemField()">
+                        <i class="fa-solid fa-plus"></i> Add Item
+                    </button>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('order-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Submit Order</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. Product Modal (Create/Edit) -->
+    <div id="product-modal" class="modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h2 id="product-modal-title">Add New Product</h2>
+                <span class="close-btn" onclick="closeModal('product-modal')">&times;</span>
+            </div>
+            <form id="product-form" onsubmit="submitProduct(event)">
+                <input type="hidden" id="product-id-field">
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="product-sku">SKU Code</label>
+                        <input type="text" id="product-sku" placeholder="E.g. ELEC-MOU-05" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="product-name">Product Name</label>
+                        <input type="text" id="product-name" placeholder="E.g. Gaming Mouse V2" required>
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="product-price">Unit Price ($)</label>
+                        <input type="number" id="product-price" step="0.01" min="0.01" placeholder="99.99" required>
+                    </div>
+                    <div class="form-group" id="product-stock-group">
+                        <label for="product-stock">Initial Stock Level</label>
+                        <input type="number" id="product-stock" min="0" placeholder="50" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="product-supplier">Supplier</label>
+                    <select id="product-supplier" required>
+                        <option value="">Select a supplier...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="product-desc">Description (Optional)</label>
+                    <textarea id="product-desc" rows="3" placeholder="Technical specifications..."></textarea>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('product-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 3. Customer Creation Modal -->
+    <div id="customer-modal" class="modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h2>Add Customer</h2>
+                <span class="close-btn" onclick="closeModal('customer-modal')">&times;</span>
+            </div>
+            <form id="customer-form" onsubmit="submitCustomer(event)">
+                <div class="form-group">
+                    <label for="customer-name">Full Name</label>
+                    <input type="text" id="customer-name" placeholder="Jane Doe" required>
+                </div>
+                <div class="form-group">
+                    <label for="customer-email">Email Address</label>
+                    <input type="email" id="customer-email" placeholder="jane@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="customer-phone">Phone Number</label>
+                    <input type="text" id="customer-phone" placeholder="+1-555-0199">
+                </div>
+                <div class="form-group">
+                    <label for="customer-address">Billing/Shipping Address</label>
+                    <input type="text" id="customer-address" placeholder="123 Oak St, Portland, OR">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('customer-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Customer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 4. Supplier Creation Modal -->
+    <div id="supplier-modal" class="modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h2>Add Supplier</h2>
+                <span class="close-btn" onclick="closeModal('supplier-modal')">&times;</span>
+            </div>
+            <form id="supplier-form" onsubmit="submitSupplier(event)">
+                <div class="form-group">
+                    <label for="supplier-name">Supplier Name</label>
+                    <input type="text" id="supplier-name" placeholder="Apex Logistics" required>
+                </div>
+                <div class="form-group">
+                    <label for="supplier-email">Contact Email</label>
+                    <input type="email" id="supplier-email" placeholder="sales@apex.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="supplier-phone">Phone Number</label>
+                    <input type="text" id="supplier-phone" placeholder="+1-555-0100">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('supplier-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Supplier</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Notifications Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Custom Logic Script -->
+    <script src="app.js"></script>
+</body>
+</html>
